@@ -8,7 +8,7 @@ def lagrange_basis_coeffs(x_points, j):
     Returns the coefficients of the j-th Lagrange basis polynomial,
     from lowest degree to highest (numpy convention).
     """
-    x_points = np.array(x_points, dtype=int)
+    x_points = np.array(x_points)
     x_j = x_points[j]
 
     # Start with the polynomial "1"
@@ -28,15 +28,10 @@ def all_basis_coeffs(x_points):
     return [lagrange_basis_coeffs(x_points, j) for j in range(len(x_points))]
 
 def lagrange_interpolate(x_points, y_points):
-    """
-    Returns the coefficients of the interpolating polynomial
-    passing through all (x_j, y_j) pairs.
-    """
-    x_points = np.array(x_points, dtype=float)
-    y_points = np.array(y_points, dtype=float)
+    x_points = np.array(x_points)
+    y_points = np.array(y_points)
     n = len(x_points)
 
-    # Accumulate y_j * L_j into a single polynomial
     # degree is n-1
     result = np.zeros(n)  # n coefficients for a degree-(n-1) polynomial
 
@@ -55,9 +50,60 @@ y_points = [1, 3, 2]
 print(lagrange_interpolate(x_points, y_points))
 print( lagrange(x_points, y_points))
 
-def interpolate(xvals, yvals, exp = 16):
+
+
+
+def galois_basis_coeffs(x_points, j, exp):
+    GF = galois.GF(2**exp)
+    x_points =  GF(x_points)
+    x_j = x_points[j]
+    poly = galois.Poly([1], field=GF)
+
+    for k, x_k in enumerate(x_points):
+        if k != j:
+            inv_denom = (x_j + x_k) ** -1
+            linear_factor = galois.Poly([1, x_k], field=GF) * inv_denom
+            poly = poly * linear_factor  # now correct polynomial multiplication
+
+    return poly  # Poly object, callable as poly(xi)
+
+
+def all_basis_coeffs(x_points, exp):
+    return [galois_basis_coeffs(x_points, j, exp) for j in range(len(x_points))]
+
+def interpolate(xvals, yvals, exp = 4):
     GF = galois.GF(2**exp)
     print(GF.properties)
-    #makes a polynomial with coefficients in GF(2)
+    x_points = GF(xvals)
+    y_points = GF(yvals)
+    n = len(x_points)
 
-interpolate([1,2], [3,4])
+    # degree is n-1
+    result = GF([0]*n)  # n coefficients for a degree-(n-1) polynomial
+
+    for j in range(n):
+        L_j = galois_basis_coeffs(x_points, j, exp)
+        
+        L_j_padded = GF([0]*n)
+        L_j_padded[n - len(L_j):] = L_j
+        result += y_points[j] * L_j_padded
+
+    return result
+
+#print(interpolate([0,1,2], [1,3,2]))
+
+print(all_basis_coeffs([1,2],2))
+
+def check_basis_coeffs(x_points, ext_exp):
+    GF = galois.GF(2**ext_exp)
+    x_points = GF(x_points)
+    for j in range(len(x_points)):
+        poly = galois_basis_coeffs(x_points, j, ext_exp)
+        print(poly)
+        for i, xi in enumerate(x_points):
+            val = poly(xi)
+            expected = GF(1) if i == j else GF(0)
+            assert val == expected, f"L_{j}({xi}) = {val}, expected {expected}"
+    print("All basis polynomials check out!")
+
+check_basis_coeffs([1,2],2)
