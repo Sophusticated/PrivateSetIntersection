@@ -5,9 +5,9 @@ X = {12, 14, 2, 4}
 #Receiver set Y:
 Y = {8, 10, 12, 14}
 
-#Find l1 and L2 from kappa and lambda and n
-L1 = 16
-L2 = 16
+#Choose l1 and L2 from kappa and lambda and n
+L1 = 128
+L2 = 128
 
 #use SHA 256 and truncate output to become a field value
 def hash_first_l_bits(number, l):
@@ -20,12 +20,15 @@ Snum = random.randint(0,2**L1)
 Sinput = format(Snum, f'0{L1}b')
 print(Snum, Sinput)
 #receiver inputs D = Enc({(y, H1(y)) | y in Y}) here H1 maps from values to l1 amount of values
-#Here we hash y, and since we trunacate to L1 bits, we have {0,1}^* -> {0,1}^L1
+
+
+#Here we hash y, and since we truncate to L1 bits, we have {0,1}^* -> {0,1}^L1
 Rinput = [(y, int(hash_first_l_bits(y,L1))) for y in Y]
 print(Rinput)
 #So here receiver is actually generating random values (y values in a coordinate) to put as points.
 
-#Now d is a bitstring which encodes he coefficients for an interpolated equation
+#Now d is a bitstring which encodes the coefficients for an interpolated equation
+#TODO: Each coefficient is a field element, so should it not be a list of field elements? or a list of bitstrings?
 #TODO: implement lagrange interpolation:
 
 #Magical VOLE gives Q to sender, and R to receiver
@@ -55,3 +58,5 @@ print(Rinput)
 
 #More complicated case:
  
+
+#Either pad to get H2 or just choose different digits
