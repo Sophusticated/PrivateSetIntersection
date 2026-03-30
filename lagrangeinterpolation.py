@@ -1,55 +1,6 @@
-import numpy as np
-from scipy.interpolate import lagrange
 import galois
 
 
-def lagrange_basis_coeffs(x_points, j):
-    """
-    Returns the coefficients of the j-th Lagrange basis polynomial,
-    from lowest degree to highest (numpy convention).
-    """
-    x_points = np.array(x_points)
-    x_j = x_points[j]
-
-    # Start with the polynomial "1"
-    poly = np.array([1.0])
-
-    for k, x_k in enumerate(x_points):
-        if k != j:
-            # Multiply by (x - x_k) / (x_j - x_k)
-            # (x - x_k) as a polynomial is [-x_k, 1] in low-to-high convention
-            linear_factor = np.array([-x_k, 1.0]) / (x_j - x_k) #deg 1 polynomial divided by scalar
-            poly = np.polymul(poly, linear_factor)  # np.polymul uses high-to-low!
-
-    return poly
-
-
-def all_basis_coeffs(x_points):
-    return [lagrange_basis_coeffs(x_points, j) for j in range(len(x_points))]
-
-def lagrange_interpolate(x_points, y_points):
-    x_points = np.array(x_points)
-    y_points = np.array(y_points)
-    n = len(x_points)
-
-    # degree is n-1
-    result = np.zeros(n)  # n coefficients for a degree-(n-1) polynomial
-
-    for i in range(n):
-        L_j = lagrange_basis_coeffs(x_points, i)
-        
-        L_j_padded = np.zeros(n)
-        L_j_padded[n - len(L_j):] = L_j
-        for j in range(len(L_j_padded)):
-            result[i] += y_points[i] * L_j_padded[j]
-
-    return result
-
-x_points = [0, 1, 2]
-y_points = [1, 3, 2]
-
-print(lagrange_interpolate(x_points, y_points))
-print(lagrange(x_points, y_points))
 
 def galois_basis_coeffs(x_points, j, exp):
     GF = galois.GF(2**exp)
