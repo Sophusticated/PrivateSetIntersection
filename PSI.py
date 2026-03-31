@@ -1,19 +1,27 @@
 import random
 import hashlib
+from lagrangeinterpolation import interpolate
 #Sender set X:
 X = {12, 14, 2, 4}
 #Receiver set Y:
 Y = {8, 10, 12, 14}
 
 #Choose l1 and L2 from kappa and lambda and n
-L1 = 128
-L2 = 128
+#TODO: There is no conway poly for 128?
+L1 = 64
+L2 = 64
 
 #use SHA 256 and truncate output to become a field value
-def hash_first_l_bits(number, l):
+def Hl1(number, l):
     digest = hashlib.sha256(str(number).encode()).digest()
     bit_string = format(int.from_bytes(digest, byteorder='big'), '0256b')
     return bit_string[:l]
+
+def Hl2(number, l2):
+    digest = hashlib.sha256(str(number).encode()).digest()
+    bit_string = format(int.from_bytes(digest, byteorder='big'), '0256b')
+    return bit_string[l2:]
+
 
 #Sender inputs random bit string of length l1
 Snum = random.randint(0,2**L1)
@@ -23,10 +31,10 @@ print(Snum, Sinput)
 
 
 #Here we hash y, and since we truncate to L1 bits, we have {0,1}^* -> {0,1}^L1
-Rinput = [(y, int(hash_first_l_bits(y,L1))) for y in Y]
-print(Rinput)
+RinputXVals = list(Y)
+RinputYVals = [(int(Hl1(y,L1), 2)) for y in Y]
 #So here receiver is actually generating random values (y values in a coordinate) to put as points.
-
+interpolate(RinputXVals, RinputYVals, exp=L1)
 #Now d is a bitstring which encodes the coefficients for an interpolated equation
 #TODO: Each coefficient is a field element, so should it not be a list of field elements? or a list of bitstrings?
 #TODO: implement lagrange interpolation:
@@ -60,3 +68,7 @@ print(Rinput)
  
 
 #Either pad to get H2 or just choose different digits
+
+
+#TODO: Ok so I suppose GFs work so that in GF(2^n) there are n elements, and they have some ordering. So in 2^4, the highest element is 3, but it's not actually 3,
+#because it's x^2 + x + 1. So we can't plot it so easily.

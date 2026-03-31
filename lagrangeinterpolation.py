@@ -11,7 +11,7 @@ def galois_basis_coeffs(x_points, j, exp):
             poly = poly * linear_factor
     return poly 
 
-def interpolate(x_points, y_points, exp = 2):
+def interpolate(x_points, y_points, exp):
     GF = galois.GF(2**exp)
     x_points = GF(x_points)
     y_points = GF(y_points)
@@ -26,7 +26,7 @@ def interpolate(x_points, y_points, exp = 2):
         assert result(xi) == yi, "ruh roh, it doesn't evaluate to the right value"
     return result
 
-print("The polynomial is " + str(interpolate([0,1,2], [1,3,2])))
+#print("The polynomial is " + str(interpolate([0,1,2], [1,3,2])))
 
 def check_basis_coeffs(x_points, ext_exp):
     GF = galois.GF(2**ext_exp)
@@ -39,4 +39,4 @@ def check_basis_coeffs(x_points, ext_exp):
             assert val == expected, f"L_{j}({xi}) = {val}, expected {expected}"
     print("All basis polynomials check out!")
 
-check_basis_coeffs([1,2],2)
+#check_basis_coeffs([1,2],2)
