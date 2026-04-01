@@ -1,6 +1,8 @@
 import random
 import hashlib
 from lagrangeinterpolation import interpolate
+import galois
+from itertools import permutations
 #Sender set X:
 X = {12, 14, 2, 4}
 #Receiver set Y:
@@ -34,14 +36,40 @@ print(Snum, Sinput)
 RinputXVals = list(Y)
 RinputYVals = [(int(Hl1(y,L1), 2)) for y in Y]
 #So here receiver is actually generating random values (y values in a coordinate) to put as points.
-interpolate(RinputXVals, RinputYVals, exp=L1)
-#Now d is a bitstring which encodes the coefficients for an interpolated equation
-#TODO: Each coefficient is a field element, so should it not be a list of field elements? or a list of bitstrings?
-#TODO: implement lagrange interpolation:
+D = interpolate(RinputXVals, RinputYVals, exp=L1)
+#Now D is a polynomial, which acts as an OKVS
 
 #Magical VOLE gives Q to sender, and R to receiver
-#TODO: how tf do we fake vole?? 
-# Maybe we can just hardcode a few of them and skip everything before here?
+
+def totallyLegitSuperObliviousVole(D: galois.Poly, s, exp = 64):
+    GF = galois.GF(2**exp)
+    sFieldElement = GF(int(s, 2))
+    coeffList = D.coeffs
+    Q = []
+    R = []
+    for i in range(len(coeffList)):
+        ri = GF(i) #just renaming for clarity that I am just choosing ri
+        R.append(ri)
+        qi = ri + coeffList[i] * sFieldElement
+        Q.append(qi)
+    return galois.Poly(Q, field=GF), galois.Poly(R, field=GF)
+
+Q, R = totallyLegitSuperObliviousVole(D, Sinput)
+
+
+def voleChecker(Q, D, s, R, exp = 64):
+    GF = galois.GF(2**exp)
+    sFieldElement = GF(int(s, 2))
+    Dcoeffs = D.coeffs
+    Qcoeffs = Q.coeffs
+    Rcoeffs = R.coeffs
+    for i in range(len(Rcoeffs)):
+        Ri = GF(Rcoeffs[i])
+        assert Qcoeffs[i] == Ri - Dcoeffs[i] * sFieldElement #Switched to minus here just for aura points
+
+#R = [i for i in range(len(Q.coeffs))] #create an R just so my volechecker also works if I get real vole one day
+voleChecker(Q, D, Sinput, R)
+
 
 #Here both Q and R are binary strings, and each element is a coefficient
 #Q = R xor D*s  
