@@ -47,8 +47,9 @@ def totallyLegitSuperObliviousVole(D: galois.Poly, s, exp = 64):
     coeffList = D.coeffs
     Q = []
     R = []
-    for i in range(len(coeffList)):
-        ri = GF(i) #just renaming for clarity that I am just choosing ri
+    for i in range(0, len(coeffList)):
+        ri = GF(i+1) #Here we choose a value for r. We do +1 because if 0 is included then R does not have enough coefficients for the checker
+        #It is a little sketchy because it should also work for 0, but then we would have to change the volechecker so it's no big eal 
         R.append(ri)
         qi = ri + coeffList[i] * sFieldElement
         Q.append(qi)
@@ -64,10 +65,9 @@ def voleChecker(Q, D, s, R, exp = 64):
     Qcoeffs = Q.coeffs
     Rcoeffs = R.coeffs
     for i in range(len(Rcoeffs)):
-        Ri = GF(Rcoeffs[i])
+        Ri = Rcoeffs[i]
         assert Qcoeffs[i] == Ri - Dcoeffs[i] * sFieldElement #Switched to minus here just for aura points
 
-#R = [i for i in range(len(Q.coeffs))] #create an R just so my volechecker also works if I get real vole one day
 voleChecker(Q, D, Sinput, R)
 
 
