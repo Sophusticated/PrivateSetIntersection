@@ -4,6 +4,10 @@ from lagrangeinterpolation import interpolate
 import galois
 from itertools import permutations
 import random
+
+exp = 64
+GF = galois.GF(2**exp)
+
 #Sender set X:
 X = {12, 14, 2, 4}
 #Receiver set Y:
@@ -15,15 +19,16 @@ L1 = 64
 L2 = 64
 
 #use SHA 256 and truncate output to become a field value
-def Hl1(number, l):
+def H1(number):
     digest = hashlib.sha256(str(number).encode()).digest()
     bit_string = format(int.from_bytes(digest, byteorder='big'), '0256b')
-    return bit_string[:l]
+    return bit_string[:L1]
 
-def Hl2(number, l2):
+def H2(number):
     digest = hashlib.sha256(str(number).encode()).digest()
     bit_string = format(int.from_bytes(digest, byteorder='big'), '0256b')
-    return bit_string[l2:]
+    return bit_string[L1:L1+L2] #eg. from 64 to 128
+
 
 
 #Sender inputs random bit string of length l1
@@ -35,15 +40,14 @@ print(Snum, Sinput)
 
 #Here we hash y, and since we truncate to L1 bits, we have {0,1}^* -> {0,1}^L1
 RinputXVals = list(Y)
-RinputYVals = [(int(Hl1(y,L1), 2)) for y in Y]
+RinputYVals = [(int(H1(y), 2)) for y in Y]
 #So here receiver is actually generating random values (y values in a coordinate) to put as points.
-D = interpolate(RinputXVals, RinputYVals, exp=L1)
+D = interpolate(RinputXVals, RinputYVals, exp)
 #Now D is a polynomial, which acts as an OKVS
 
 #Magical VOLE gives Q to sender, and R to receiver
 
-def totallyLegitSuperObliviousVole(D: galois.Poly, s, exp = 64):
-    GF = galois.GF(2**exp)
+def totallyLegitSuperObliviousVole(D: galois.Poly, s):
     sFieldElement = GF(int(s, 2))
     coeffList = D.coeffs
     Q = []
@@ -56,11 +60,46 @@ def totallyLegitSuperObliviousVole(D: galois.Poly, s, exp = 64):
         Q.append(qi)
     return galois.Poly(Q, field=GF), galois.Poly(R, field=GF)
 
-Q, R = totallyLegitSuperObliviousVole(D, Sinput, exp = 64)
+Q, R = totallyLegitSuperObliviousVole(D, Sinput)
 
 
-def voleChecker(Q, D, s, R, exp = 64):
-    GF = galois.GF(2**exp)
+def Send(X, Q, s):
+    sFieldElement = GF(int(s, 2))
+    M = [] #using list instead of set bc of nice permute function from random
+    for x in X:
+        #TODO: should we change the hash function so it just returns an int? In the protocol it outputs bitstrings but we never use that anyway
+        #TODO: does this stay true to the protocol? We are adding them instead of using strings.
+        #previous bugged code was mi = int(Q(x) + GF(int(H1(x), 2) * sFieldElement)), where the right term became 0
+        mi = H2(x + int(Q(x) + GF(int(H1(x), 2)) * sFieldElement)) 
+        M.append(mi)
+    return random.sample(M, len(M)) #gives permutation
+
+
+M = Send(X, Q, Sinput)
+print(M)
+
+def receiverOutput(R, Y):
+    outPutList = []
+    for y in Y:
+        test = H2(y + int(R(y)))
+        if test in M:
+            outPutList.append(y)
+    return outPutList
+
+print(f'The set intersection consists of elements: {receiverOutput(R,Y)}')
+
+#So sender wants to find the "y" value of Q at a certain point, they can sum all the
+#terms, which in a polynomial are sum(Qi*Ax,i) where 
+#TODO: why do we write Ax,i instead of just x^i?
+
+
+#TODO: Ok so I suppose GFs work so that in GF(2^n) there are n elements, and they have some ordering. So in 2^4, the highest element is 3, but it's not actually 3,
+#because it's x^2 + x + 1. So we can't plot it so easily.
+
+def voleChecker(Q, D, s, R):
+    """
+    Ri = Qi + s*Di
+    """
     sFieldElement = GF(int(s, 2))
     Dcoeffs = D.coeffs
     Qcoeffs = Q.coeffs
@@ -68,66 +107,8 @@ def voleChecker(Q, D, s, R, exp = 64):
     for i in range(len(Rcoeffs)):
         Ri = Rcoeffs[i]
         assert Qcoeffs[i] == Ri - Dcoeffs[i] * sFieldElement #Switched to minus here just for aura points
-        assert Ri == Qcoeffs[i] - Dcoeffs[i] * sFieldElement 
+        assert Ri == Qcoeffs[i] - Dcoeffs[i] * sFieldElement #equivalent
 
-voleChecker(Q, D, Sinput, R, exp = 64)
+voleChecker(Q, D, Sinput, R)
 
-
-def Send(X, Q, s, exp = 64):
-    GF = galois.GF(2**exp)
-    sFieldElement = GF(int(s, 2))
-    M = []
-    for x in X:
-        #TODO: should we change the hash function so it just returns an int?
-        #TODO: does this stay true to the protocol?
-        #mi = Hl2(int(Q(x) + GF(int(Hl1(x, L1), 2)) * sFieldElement), L2)
-        #previous bugged code was mi = int(Q(x) + GF(int(Hl1(x, L1), 2) * sFieldElement)), where the right term became 0
-        mi = Hl2(int(Q(x) + GF(int(Hl1(x, L1), 2)) * sFieldElement), L2) #had a bug
-
-        M.append(mi)
-    return random.sample(M, len(M))
-
-
-M = Send(X, Q, Sinput)
-print(M)
-
-def receiverOutput(R, Y, exp = 64):
-    GF = galois.GF(2**exp)
-    outPutList = []
-    for y in Y:
-        test = Hl2(int(R(y)), L2)
-        if test in M:
-            outPutList.append(y)
-    return outPutList
-
-print(f'The set intersection consists of elements: {receiverOutput(R,Y)}')
-
-#Here both Q and R are binary strings, and each element is a coefficient
-#Q = R xor D*s  
-#So Ri = Qi + s*Di
-#So sender wants to find the "y" value of Q at a certain point, they can sum all the
-#terms, which in a polynomial are sum(Qi*Ax,i) where 
-#TODO: why do we write Ax,i instead of just x^i?
-
-#So the process is:
-#S finds Dec(Q,x) for a given x by summing over Q*x^i
-#S xors that with s* the hashed value of x, using the same hash function, it cancels out
-#.. if they give the same value
-#Now s compares that mod2 sum with 
-#TODO: aren't we just comparing Dec(Q,x) xor something with Dec(Q,x) xor same thing?
-#answer: R has to send some additional info directly to S so that S can compare
-
-#Simple case:
-#I think R sends the polynomial which does not contain any info except that you can evaluate it at different points
-#So I can evalueate it at x, then XOR that from the Value, and if that gives me the same as when i
-#XOR the s value times the hashed x value, then it means that I hit the same X value.
-#Still not safe to spam attacks where I try everything
-
-#More complicated case:
- 
-
-#Either pad to get H2 or just choose different digits
-
-
-#TODO: Ok so I suppose GFs work so that in GF(2^n) there are n elements, and they have some ordering. So in 2^4, the highest element is 3, but it's not actually 3,
-#because it's x^2 + x + 1. So we can't plot it so easily.
+#TODO: Why does this work? Can the receiver not just spam different outputs and basically lie about it's input set?
