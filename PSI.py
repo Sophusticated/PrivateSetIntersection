@@ -3,6 +3,7 @@ import hashlib
 from lagrangeinterpolation import interpolate
 import galois
 from itertools import permutations
+import random
 #Sender set X:
 X = {12, 14, 2, 4}
 #Receiver set Y:
@@ -55,7 +56,7 @@ def totallyLegitSuperObliviousVole(D: galois.Poly, s, exp = 64):
         Q.append(qi)
     return galois.Poly(Q, field=GF), galois.Poly(R, field=GF)
 
-Q, R = totallyLegitSuperObliviousVole(D, Sinput)
+Q, R = totallyLegitSuperObliviousVole(D, Sinput, exp = 64)
 
 
 def voleChecker(Q, D, s, R, exp = 64):
@@ -67,9 +68,39 @@ def voleChecker(Q, D, s, R, exp = 64):
     for i in range(len(Rcoeffs)):
         Ri = Rcoeffs[i]
         assert Qcoeffs[i] == Ri - Dcoeffs[i] * sFieldElement #Switched to minus here just for aura points
+        assert Ri == Qcoeffs[i] - Dcoeffs[i] * sFieldElement 
 
-voleChecker(Q, D, Sinput, R)
+voleChecker(Q, D, Sinput, R, exp = 64)
 
+
+def Send(X, Q, s, exp = 64):
+    GF = galois.GF(2**exp)
+    sFieldElement = GF(int(s, 2))
+    M = []
+    for x in X:
+        #TODO: should we change the hash function so it just returns an int?
+        #TODO: does this stay true to the protocol?
+        #mi = Hl2(int(Q(x) + GF(int(Hl1(x, L1), 2)) * sFieldElement), L2)
+        #previous bugged code was mi = int(Q(x) + GF(int(Hl1(x, L1), 2) * sFieldElement)), where the right term became 0
+        mi = Hl2(int(Q(x) + GF(int(Hl1(x, L1), 2)) * sFieldElement), L2) #had a bug
+
+        M.append(mi)
+    return random.sample(M, len(M))
+
+
+M = Send(X, Q, Sinput)
+print(M)
+
+def receiverOutput(R, Y, exp = 64):
+    GF = galois.GF(2**exp)
+    outPutList = []
+    for y in Y:
+        test = Hl2(int(R(y)), L2)
+        if test in M:
+            outPutList.append(y)
+    return outPutList
+
+print(f'The set intersection consists of elements: {receiverOutput(R,Y)}')
 
 #Here both Q and R are binary strings, and each element is a coefficient
 #Q = R xor D*s  
