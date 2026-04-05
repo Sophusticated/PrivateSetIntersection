@@ -31,6 +31,45 @@ def H2(number):
 
 
 
+
+def totallyLegitSuperObliviousVole(D: galois.Poly, s):
+    sFieldElement = GF(int(s, 2))
+    coeffList = D.coeffs
+    Q = []
+    R = []
+    for i in range(0, len(coeffList)):
+        ri = GF(i+1) #Here we choose a value for r. We do +1 because if 0 is included then R does not have enough coefficients for the checker
+        #It is a little sketchy because it should also work for 0, but then we would have to change the volechecker so it's no big eal 
+        R.append(ri)
+        qi = ri + coeffList[i] * sFieldElement
+        Q.append(qi)
+    return galois.Poly(Q, field=GF), galois.Poly(R, field=GF)
+
+
+def Send(X, Q, s):
+    sFieldElement = GF(int(s, 2))
+    M = [] #using list instead of set bc of nice permute function from random
+    for x in X:
+        #TODO: should we change the hash function so it just returns an int? In the protocol it outputs bitstrings but we never use that anyway
+        #TODO: does this stay true to the protocol? We are adding them instead of using strings.
+        #previous bugged code was mi = int(Q(x) + GF(int(H1(x), 2) * sFieldElement)), where the right term became 0
+        mi = H2(x + int(Q(x) + GF(int(H1(x), 2)) * sFieldElement)) 
+        M.append(mi)
+    return random.sample(M, len(M)) #gives permutation
+
+
+
+
+
+#So sender wants to find the "y" value of Q at a certain point, they can sum all the
+#terms, which in a polynomial are sum(Qi*Ax,i) where 
+#TODO: why do we write Ax,i instead of just x^i?
+
+
+#TODO: Ok so I suppose GFs work so that in GF(2^n) there are n elements, and they have some ordering. So in 2^4, the highest element is 3, but it's not actually 3,
+#because it's x^2 + x + 1. So we can't plot it so easily.
+
+
 #Sender inputs random bit string of length l1
 Snum = random.randint(0,2**L1)
 Sinput = format(Snum, f'0{L1}b')
@@ -46,34 +85,7 @@ D = interpolate(RinputXVals, RinputYVals, exp)
 #Now D is a polynomial, which acts as an OKVS
 
 #Magical VOLE gives Q to sender, and R to receiver
-
-def totallyLegitSuperObliviousVole(D: galois.Poly, s):
-    sFieldElement = GF(int(s, 2))
-    coeffList = D.coeffs
-    Q = []
-    R = []
-    for i in range(0, len(coeffList)):
-        ri = GF(i+1) #Here we choose a value for r. We do +1 because if 0 is included then R does not have enough coefficients for the checker
-        #It is a little sketchy because it should also work for 0, but then we would have to change the volechecker so it's no big eal 
-        R.append(ri)
-        qi = ri + coeffList[i] * sFieldElement
-        Q.append(qi)
-    return galois.Poly(Q, field=GF), galois.Poly(R, field=GF)
-
 Q, R = totallyLegitSuperObliviousVole(D, Sinput)
-
-
-def Send(X, Q, s):
-    sFieldElement = GF(int(s, 2))
-    M = [] #using list instead of set bc of nice permute function from random
-    for x in X:
-        #TODO: should we change the hash function so it just returns an int? In the protocol it outputs bitstrings but we never use that anyway
-        #TODO: does this stay true to the protocol? We are adding them instead of using strings.
-        #previous bugged code was mi = int(Q(x) + GF(int(H1(x), 2) * sFieldElement)), where the right term became 0
-        mi = H2(x + int(Q(x) + GF(int(H1(x), 2)) * sFieldElement)) 
-        M.append(mi)
-    return random.sample(M, len(M)) #gives permutation
-
 
 M = Send(X, Q, Sinput)
 print(M)
@@ -86,15 +98,6 @@ def receiverOutput(R, Y):
             outPutList.append(y)
     return outPutList
 
-print(f'The set intersection consists of elements: {receiverOutput(R,Y)}')
-
-#So sender wants to find the "y" value of Q at a certain point, they can sum all the
-#terms, which in a polynomial are sum(Qi*Ax,i) where 
-#TODO: why do we write Ax,i instead of just x^i?
-
-
-#TODO: Ok so I suppose GFs work so that in GF(2^n) there are n elements, and they have some ordering. So in 2^4, the highest element is 3, but it's not actually 3,
-#because it's x^2 + x + 1. So we can't plot it so easily.
 
 def voleChecker(Q, D, s, R):
     """
@@ -111,4 +114,5 @@ def voleChecker(Q, D, s, R):
 
 voleChecker(Q, D, Sinput, R)
 
-#TODO: Why does this work? Can the receiver not just spam different outputs and basically lie about it's input set?
+
+print(f'The set intersection consists of elements: {receiverOutput(R,Y)}')
