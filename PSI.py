@@ -12,15 +12,18 @@ L1 = exp
 L2 = L1
 
 #use SHA 256 and truncate output to become a field value
-def H1(number):
+def HashAsBitString(number):
     digest = hashlib.sha256(str(number).encode()).digest()
     bit_string = format(int.from_bytes(digest, byteorder='big'), '0256b')
-    return bit_string[:L1]
+    return bit_string
 
+def H1(number):
+    bit_string = HashAsBitString(number)
+    return bit_string[:L1]
 def H2(number):
-    digest = hashlib.sha256(str(number).encode()).digest()
-    bit_string = format(int.from_bytes(digest, byteorder='big'), '0256b')
+    bit_string = HashAsBitString(number)
     return bit_string[L1:L1+L2] #eg. from 64 to 128
+
 
 def notVeryObliviousVole(D: galois.Poly, s):
     sFieldElement = GF(int(s, 2))
@@ -85,8 +88,6 @@ if __name__=="__main__":
     print(f'The set intersection consists of elements: {receiverOutput(R,Y,M)}')
 
 
-
-
 def voleChecker(Q, D, s, R):
     """
     Ri = Qi + s*Di
@@ -101,5 +102,3 @@ def voleChecker(Q, D, s, R):
         assert Ri == Qcoeffs[i] - Dcoeffs[i] * sFieldElement #equivalent
 
 #voleChecker(Q, D, Sinput, R)
-
-
