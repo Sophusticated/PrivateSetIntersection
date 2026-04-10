@@ -41,7 +41,6 @@ def Send(X, Q, s):
     sFieldElement = GF(int(s, 2))
     M = [] #using list instead of set bc of nice permute function from random
     for x in X:
-        #TODO: does this stay true to the protocol? We are adding them instead of using strings.
         miBitString = f'{x:b}' + f'{int(Q(x) + GF(int(H1(x), 2)) * sFieldElement):b}'
         mi = H2(int(miBitString, 2)) 
         M.append(mi)
@@ -50,7 +49,8 @@ def Send(X, Q, s):
 def receiverOutput(R, Y, M):
     outPutList = []
     for y in Y:
-        comparisonVal = H2(int(f'{y:b}'+ f'{int(R(y)):b}', 2))
+        comparisonBitString = f'{y:b}'+ f'{int(R(y)):b}'
+        comparisonVal = H2(int(comparisonBitString, 2))
         if comparisonVal in M:
             outPutList.append(y)
     return outPutList
@@ -64,7 +64,6 @@ def receiverOutput(R, Y, M):
 
 
 #Main program:
-
 if __name__=="__main__":
 
     X = {12, 14, 2, 4}
