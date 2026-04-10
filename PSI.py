@@ -37,22 +37,21 @@ def notVeryObliviousVole(D: galois.Poly, s):
         Q.append(qi)
     return galois.Poly(Q, field=GF), galois.Poly(R, field=GF)
 
-
 def Send(X, Q, s):
     sFieldElement = GF(int(s, 2))
     M = [] #using list instead of set bc of nice permute function from random
     for x in X:
         #TODO: does this stay true to the protocol? We are adding them instead of using strings.
-        mi = H2(x + int(Q(x) + GF(int(H1(x), 2)) * sFieldElement)) 
+        miBitString = f'{x:b}' + f'{int(Q(x) + GF(int(H1(x), 2)) * sFieldElement):b}'
+        mi = H2(int(miBitString, 2)) 
         M.append(mi)
     return random.sample(M, len(M)) #gives permutation
-
 
 def receiverOutput(R, Y, M):
     outPutList = []
     for y in Y:
-        test = H2(y + int(R(y)))
-        if test in M:
+        comparisonVal = H2(int(f'{y:b}'+ f'{int(R(y)):b}', 2))
+        if comparisonVal in M:
             outPutList.append(y)
     return outPutList
 
